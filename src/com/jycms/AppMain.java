@@ -7,11 +7,14 @@ import javax.swing.*;
 
 public class AppMain {
     public static void main(String[] args) {
-        // 推荐在 EDT 上启动 Swing UI
-        SwingUtilities.invokeLater(() -> {
-            SystemController controller = new SystemController();
-            LoginFrame login = new LoginFrame(controller);
-            login.setVisible(true);
+        // 确保在事件调度线程 (EDT) 上启动 UI
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                SystemController controller = new SystemController();
+                LoginFrame login = new LoginFrame(controller);
+                login.setVisible(true);
+            }
         });
     }
 }

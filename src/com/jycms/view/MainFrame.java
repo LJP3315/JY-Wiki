@@ -2,21 +2,17 @@ package com.jycms.view;
 
 import com.jycms.controller.SystemController;
 import com.jycms.model.Character;
+import com.jycms.view.table.ButtonEditor;
+import com.jycms.view.table.ButtonRenderer;
+import com.jycms.view.table.CharacterTableModel;
 
 import javax.swing.*;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableCellEditor;
-import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.List;
 import java.util.ArrayList;
 
-/**
- * 主窗口：搜索 + 结果表格
- */
 public class MainFrame extends JFrame {
-    private SystemController controller;
+    private final SystemController controller;
 
     private JTextField tfKeyword;
     private JComboBox<String> cbType;
@@ -27,6 +23,8 @@ public class MainFrame extends JFrame {
     public MainFrame(SystemController controller) {
         this.controller = controller;
         initUI();
+        // 初始加载一次数据
+        doSearch();
     }
 
     private void initUI() {
@@ -52,14 +50,16 @@ public class MainFrame extends JFrame {
         tableModel = new CharacterTableModel(new ArrayList<Character>());
         table = new JTable(tableModel);
 
-        // 动作列（按钮）
+        // 动作列设置
         table.getColumnModel().getColumn(tableModel.getColumnCount() - 1)
                 .setCellRenderer(new ButtonRenderer());
+        // 传入 MainFrame 作为 ownerFrame
         table.getColumnModel().getColumn(tableModel.getColumnCount() - 1)
-                .setCellEditor(new ButtonEditor(new JCheckBox()));
+                .setCellEditor(new ButtonEditor(table, controller, this));
 
-        // 双击行查看详情
+        // 双击行查看详情 (使用匿名内部类)
         table.addMouseListener(new MouseAdapter() {
+            @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
                     int row = table.getSelectedRow();
@@ -74,11 +74,20 @@ public class MainFrame extends JFrame {
         JScrollPane scrollPane = new JScrollPane(table);
         add(scrollPane, BorderLayout.CENTER);
 
-        // 搜索事件
-        btnSearch.addActionListener(e -> doSearch());
+        // 搜索事件 (使用命名内部类)
+        SearchActionListener searchListener = new SearchActionListener();
+        btnSearch.addActionListener(searchListener);
+        tfKeyword.addActionListener(searchListener);
+    }
 
-        // 回车触发搜索
-        tfKeyword.addActionListener(e -> doSearch());
+    /**
+     * 搜索按钮和回车的 ActionListener (命名内部类)
+     */
+    private class SearchActionListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            doSearch();
+        }
     }
 
     private void doSearch() {
@@ -88,142 +97,16 @@ public class MainFrame extends JFrame {
         tableModel.setCharacters(results);
     }
 
-    private void showDetail(int charId) {
-        // 调用 controller 获取详情并打开对话框
+    /**
+     * 显示人物详情的逻辑
+     */
+    public void showDetail(int charId) {
         Character full = controller.getCharacterDetails(charId);
         if (full != null) {
             DetailDialog dialog = new DetailDialog(this, full);
             dialog.setVisible(true);
         } else {
             JOptionPane.showMessageDialog(this, "未找到该人物的详细信息", "提示", JOptionPane.WARNING_MESSAGE);
-        }
-    }
-
-    // ---------------- CharacterTableModel ----------------
-    private class CharacterTableModel extends AbstractTableModel {
-        private final String[] columns = {"ID", "姓名", "小说", "简介", "图片", "操作"};
-        private List<Character> characters;
-
-        public CharacterTableModel(List<Character> characters) {
-            this.characters = characters;
-        }
-
-        public void setCharacters(List<Character> characters) {
-            this.characters = characters;
-            fireTableDataChanged();
-        }
-
-        public Character getCharacterAt(int row) {
-            if (row >= 0 && row < characters.size()) return characters.get(row);
-            return null;
-        }
-
-        @Override
-        public int getRowCount() {
-            return characters == null ? 0 : characters.size();
-        }
-
-        @Override
-        public int getColumnCount() {
-            return columns.length;
-        }
-
-        @Override
-        public String getColumnName(int column) {
-            return columns[column];
-        }
-
-        @Override
-        public Class<?> getColumnClass(int columnIndex) {
-            if (columnIndex == 0) return Integer.class;
-            if (columnIndex == 5) return Object.class; // button
-            return String.class;
-        }
-
-        @Override
-        public boolean isCellEditable(int rowIndex, int columnIndex) {
-            return columnIndex == 5; // 只有操作列可编辑（用于按钮）
-        }
-
-        @Override
-        public Object getValueAt(int rowIndex, int columnIndex) {
-            Character c = characters.get(rowIndex);
-            switch (columnIndex) {
-                case 0: return c.getId();
-                case 1: return c.getName();
-                case 2: return c.getNovelName();
-                case 3: return c.getDescriptionShort();
-                case 4: return c.getImageUrl();
-                case 5: return "查看更多";
-                default: return "";
-            }
-        }
-    }
-
-    // ---------------- ButtonRenderer ----------------
-    private class ButtonRenderer extends JButton implements TableCellRenderer {
-        public ButtonRenderer() {
-            setOpaque(true);
-        }
-
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                                                       boolean isSelected, boolean hasFocus,
-                                                       int row, int column) {
-            setText(value == null ? "" : value.toString());
-            return this;
-        }
-    }
-
-    // ---------------- ButtonEditor ----------------
-    private class ButtonEditor extends DefaultCellEditor {
-        private JButton button;
-        private String label;
-        private boolean isPushed;
-        private int selectedRow;
-
-        public ButtonEditor(JCheckBox checkBox) {
-            super(checkBox);
-            button = new JButton();
-            button.setOpaque(true);
-            button.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    fireEditingStopped();
-                    // 打开详情
-                    Character c = tableModel.getCharacterAt(selectedRow);
-                    if (c != null) {
-                        showDetail(c.getId());
-                    }
-                }
-            });
-        }
-
-        @Override
-        public Component getTableCellEditorComponent(JTable table, Object value,
-                                                     boolean isSelected, int row, int column) {
-            selectedRow = row;
-            label = (value == null) ? "" : value.toString();
-            button.setText(label);
-            isPushed = true;
-            return button;
-        }
-
-        @Override
-        public Object getCellEditorValue() {
-            isPushed = false;
-            return label;
-        }
-
-        @Override
-        public boolean stopCellEditing() {
-            isPushed = false;
-            return super.stopCellEditing();
-        }
-
-        @Override
-        protected void fireEditingStopped() {
-            super.fireEditingStopped();
         }
     }
 }

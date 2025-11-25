@@ -7,16 +7,19 @@ import java.util.List;
 public class CharacterDAO {
 
     /**
-     * 登录验证（简单明文密码示例）
-     * @return true 如果用户名密码匹配
+     * 简单的用户登录校验
+     * 修正：表名 User 添加反引号 `User`
      */
-    public boolean login(String user, String pass) {
-        String sql = "SELECT id FROM `User` WHERE username = ? AND password = ?";
+    public boolean login(String username, String password) {
+        // 修正: 使用反引号 `User` 括起表名
+        String sql = "SELECT * FROM `User` WHERE username = ? AND password = ?";
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, user);
-            ps.setString(2, pass);
-            try (ResultSet rs = ps.executeQuery()) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, username);
+            pstmt.setString(2, password);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
                 return rs.next();
             }
         } catch (SQLException e) {
@@ -26,22 +29,31 @@ public class CharacterDAO {
     }
 
     /**
-     * 模糊搜索人物（支持按人物名称或小说名称）
-     * @param keyword 关键词
-     * @param type "人物名称" 或 "小说名称"
-     * @return 人物列表（包含简要信息）
+     * 搜索人物
+     * 修正：表名 Character 添加反引号 `Character`
      */
     public List<Character> searchCharacters(String keyword, String type) {
-        List<Character> list = new ArrayList<>();
-        String column = "name";
-        if ("小说名称".equals(type) || "novel".equalsIgnoreCase(type)) {
-            column = "novel_name";
+        List<Character> characters = new ArrayList<>();
+        String sql;
+        String searchField;
+
+        if ("人物名称".equals(type)) {
+            searchField = "name";
+        } else if ("小说名称".equals(type)) {
+            searchField = "novel_name";
+        } else {
+            searchField = "name";
         }
-        String sql = "SELECT id, name, novel_name, description_short, image_url FROM `Character` WHERE " + column + " LIKE ? ORDER BY id";
+
+        // 修正: 使用反引号 `Character` 括起表名
+        sql = "SELECT id, name, novel_name, description_short, image_url FROM `Character` WHERE " + searchField + " LIKE ?";
+
         try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, "%" + keyword + "%");
-            try (ResultSet rs = ps.executeQuery()) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, "%" + keyword + "%");
+
+            try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     Character c = new Character();
                     c.setId(rs.getInt("id"));
@@ -49,56 +61,63 @@ public class CharacterDAO {
                     c.setNovelName(rs.getString("novel_name"));
                     c.setDescriptionShort(rs.getString("description_short"));
                     c.setImageUrl(rs.getString("image_url"));
-                    list.add(c);
+                    characters.add(c);
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return list;
+        return characters;
     }
 
     /**
-     * 获取人物完整详情（包括 full 描述以及关联武功）
+     * 获取人物详细信息（包括武功）
+     * 修正：表名 Character 和 MartialArt 添加反引号
      */
     public Character getCharacterDetails(int id) {
-        String sqlChar = "SELECT id, name, novel_name, description_short, description_full, image_url FROM `Character` WHERE id = ?";
-        String sqlArts = "SELECT id, char_id, art_name, art_description FROM `MartialArt` WHERE char_id = ? ORDER BY id";
-        Character c = null;
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sqlChar)) {
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    c = new Character();
-                    c.setId(rs.getInt("id"));
-                    c.setName(rs.getString("name"));
-                    c.setNovelName(rs.getString("novel_name"));
-                    c.setDescriptionShort(rs.getString("description_short"));
-                    c.setDescriptionFull(rs.getString("description_full"));
-                    c.setImageUrl(rs.getString("image_url"));
-                } else {
-                    return null;
-                }
-            }
+        Character character = null;
+        // 修正: 使用反引号 `Character` 括起表名
+        String charSql = "SELECT * FROM `Character` WHERE id = ?";
+        // 修正: 使用反引号 `MartialArt` 括起表名
+        String artsSql = "SELECT id, art_name, art_description FROM `MartialArt` WHERE char_id = ?";
 
-            try (PreparedStatement ps2 = conn.prepareStatement(sqlArts)) {
-                ps2.setInt(1, id);
-                try (ResultSet rs2 = ps2.executeQuery()) {
-                    while (rs2.next()) {
-                        MartialArt ma = new MartialArt();
-                        ma.setId(rs2.getInt("id"));
-                        ma.setCharId(rs2.getInt("char_id"));
-                        ma.setArtName(rs2.getString("art_name"));
-                        ma.setArtDescription(rs2.getString("art_description"));
-                        c.addMartialArt(ma);
+        try (Connection conn = DBUtil.getConnection()) {
+
+            // 1. 获取人物基础信息
+            try (PreparedStatement charPstmt = conn.prepareStatement(charSql)) {
+                charPstmt.setInt(1, id);
+                try (ResultSet rs = charPstmt.executeQuery()) {
+                    if (rs.next()) {
+                        character = new Character();
+                        character.setId(rs.getInt("id"));
+                        character.setName(rs.getString("name"));
+                        character.setNovelName(rs.getString("novel_name"));
+                        character.setDescriptionShort(rs.getString("description_short"));
+                        character.setDescriptionFull(rs.getString("description_full"));
+                        character.setImageUrl(rs.getString("image_url"));
+                        character.setMartialArts(new ArrayList<MartialArt>());
                     }
                 }
             }
 
+            // 2. 获取关联武功信息
+            if (character != null) {
+                try (PreparedStatement artsPstmt = conn.prepareStatement(artsSql)) {
+                    artsPstmt.setInt(1, id);
+                    try (ResultSet rs = artsPstmt.executeQuery()) {
+                        while (rs.next()) {
+                            MartialArt art = new MartialArt();
+                            art.setId(rs.getInt("id"));
+                            art.setArtName(rs.getString("art_name"));
+                            art.setArtDescription(rs.getString("art_description"));
+                            character.getMartialArts().add(art);
+                        }
+                    }
+                }
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return c;
+        return character;
     }
 }
