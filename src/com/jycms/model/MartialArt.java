@@ -1,8 +1,11 @@
 package com.jycms.model;
 
 public class MartialArt {
+    // 武功编号
     private int id;
+    // 武功的名称
     private String artName;
+    // 武功的描述
     private String artDescription;
 
     public int getId() {
