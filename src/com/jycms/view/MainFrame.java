@@ -10,6 +10,10 @@ import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 主窗口：搜索 + 结果表格
+ * 新增了收藏功能 UI 和逻辑
+ */
 public class MainFrame extends JFrame {
     private final SystemController controller;
 
@@ -19,7 +23,7 @@ public class MainFrame extends JFrame {
 
     // --- 新增 UI 组件 ---
     private JButton btnAddToFav;
-    private JToggleButton tbtnShowFav;
+    private JToggleButton tbtnShowFav; // 切换按钮：显示全部 / 显示收藏
     // ------------------
 
     private JTable table;
@@ -28,7 +32,7 @@ public class MainFrame extends JFrame {
     public MainFrame(SystemController controller) {
         this.controller = controller;
         initUI();
-        doSearch();
+        doSearch(); // 启动时自动加载一次数据
     }
 
     private void initUI() {
@@ -78,12 +82,18 @@ public class MainFrame extends JFrame {
     }
 
     private JScrollPane createCenterTableArea() {
-        // (保持之前的简化版本)
+        // 使用简化版的 CharacterTableModel
         tableModel = new CharacterTableModel(new ArrayList<Character>());
         table = new JTable(tableModel);
-        // 简单设置列宽
-        table.getColumnModel().getColumn(0).setPreferredWidth(50);
-        table.getColumnModel().getColumn(3).setPreferredWidth(300);
+
+        // 简单设置列宽 (假设 CharacterTableModel 已经更新到 5 列)
+        try {
+            table.getColumnModel().getColumn(0).setPreferredWidth(50);
+            table.getColumnModel().getColumn(3).setPreferredWidth(300);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            // 忽略：如果列数与预期不符（例如 CharacterTableModel 尚未更新）
+        }
+
         return new JScrollPane(table);
     }
 
@@ -92,21 +102,22 @@ public class MainFrame extends JFrame {
         btnSearch.addActionListener(searchListener);
         tfKeyword.addActionListener(searchListener);
 
+        // 双击行查看详情 (替代了操作列的按钮)
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
                     int row = table.getSelectedRow();
+                    if (row < 0) return;
+
                     int modelRow = table.convertRowIndexToModel(row);
-                    if (modelRow >= 0) {
-                        Character c = tableModel.getCharacterAt(modelRow);
-                        if (c != null) showDetail(c.getId());
-                    }
+                    Character c = tableModel.getCharacterAt(modelRow);
+                    if (c != null) showDetail(c.getId());
                 }
             }
         });
 
-        // --- 新增事件监听器 ---
+        // --- 新增事件监听器：收藏功能 ---
 
         // 1. 加入收藏按钮逻辑
         btnAddToFav.addActionListener(e -> {
@@ -115,16 +126,14 @@ public class MainFrame extends JFrame {
                 JOptionPane.showMessageDialog(this, "请先选择一个人物！");
                 return;
             }
-            // 获取选中人物
             int modelRow = table.convertRowIndexToModel(row);
             Character c = tableModel.getCharacterAt(modelRow);
 
-            // 调用控制器
             boolean success = controller.addToCollection(c.getId());
             if (success) {
                 JOptionPane.showMessageDialog(this, "成功加入收藏！");
             } else {
-                JOptionPane.showMessageDialog(this, "该人物已在收藏夹中。");
+                JOptionPane.showMessageDialog(this, "该人物已在收藏夹中或操作失败。");
             }
         });
 
@@ -133,9 +142,9 @@ public class MainFrame extends JFrame {
             if (tbtnShowFav.isSelected()) {
                 // 状态：按下 -> 显示收藏列表
                 tbtnShowFav.setText("返回搜索");
-                btnSearch.setEnabled(false);   // 禁用搜索按钮
-                tfKeyword.setEnabled(false);   // 禁用输入框
-                btnAddToFav.setEnabled(false); // 在收藏列表里禁用“加入收藏”
+                btnSearch.setEnabled(false);
+                tfKeyword.setEnabled(false);
+                btnAddToFav.setEnabled(false); // 在收藏模式下禁用“加入收藏”
 
                 // 加载收藏数据
                 List<Character> favs = controller.getCollection();
@@ -158,7 +167,10 @@ public class MainFrame extends JFrame {
     private class SearchActionListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            doSearch();
+            // 确保在搜索模式下才能执行搜索
+            if (!tbtnShowFav.isSelected()) {
+                doSearch();
+            }
         }
     }
 

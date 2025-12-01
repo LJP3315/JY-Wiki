@@ -34,26 +34,6 @@ CREATE TABLE `MartialArt` (
                               CONSTRAINT fk_char FOREIGN KEY (`char_id`) REFERENCES `Character`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 插入部分金庸小说人物和武功（至少 5 条人物和若干武功）
-INSERT INTO `Character` (`name`, `novel_name`, `description_short`, `description_full`, `image_url`) VALUES
-                                                                                                         ('郭靖', '射雕英雄传', '忠厚老实，武艺高强', '郭靖，蒙古与汉族混血，自幼习武，为人忠厚正直，后来与黄蓉共闯江湖。', 'images/guojing.jpg'),
-                                                                                                         ('黄蓉', '射雕英雄传', '机智聪颖，谋略过人', '黄蓉，桃花岛主黄药师之女，聪明伶俐，足智多谋，是郭靖的挚爱与搭档。', 'images/huangrong.jpg'),
-                                                                                                         ('令狐冲', '笑傲江湖', '豁达不羁，剑法绝妙', '令狐冲，华山派弟子，性格潇洒不羁，与任盈盈有深厚情谊。', 'images/linghuchong.jpg'),
-                                                                                                         ('张无忌', '倚天屠龙记', '为人宽厚，武学天赋高', '张无忌，明教教主，机缘巧合习得多种绝学，为人仁慈，颇具领袖气质。', 'images/zhangwuji.jpg'),
-                                                                                                         ('杨过', '神雕侠侣', '性情刚烈，感情深沉', '杨过，出身曲折，与小龙女感情深厚，武艺奇高。', 'images/yangguo.jpg');
-
--- 为每个人物添加若干武功（MartialArt）
-INSERT INTO `MartialArt` (`char_id`, `art_name`, `art_description`) VALUES
-                                                                        (1, '降龙十八掌', '以力破巧，掌力浑厚，攻势刚猛，为丐帮至高掌法之一。'),
-                                                                        (1, '九阴真经（部分）', '内功、拳术与奇门遁甲相结合的绝学（此处代表郭靖所学之部分）。'),
-                                                                        (2, '打狗棒法（悟空棒法）', '桃花岛与丐帮技艺交流影响，且黄蓉善于变化陷阱与机关。'),
-                                                                        (3, '独孤九剑', '以无招胜有招的剑法，速度与取位为主。'),
-                                                                        (3, '吸星大法（部分）', '（令狐冲在某些剧情被牵连，不同版本描述不一，此处仅示例）'),
-                                                                        (4, '乾坤大挪移', '以巧妙的身法和内力运转化解对方攻势并反制。'),
-                                                                        (4, '明教剑法', '明教特有的剑法传承与招式融合。'),
-                                                                        (5, '玉女素心剑', '轻灵飘逸，讲究以巧取胜。'),
-                                                                        (5, '黯然销魂掌', '情感与招式结合的内劲型掌法。');
-
 -- 1. 新建小说表
 CREATE TABLE `Novel` (
                          `id` INT PRIMARY KEY AUTO_INCREMENT,
@@ -76,4 +56,25 @@ CREATE TABLE `Collection` (
     -- 唯一约束，防止重复收藏同一个人
                               UNIQUE KEY `uk_char` (`char_id`),
                               FOREIGN KEY (`char_id`) REFERENCES `Character`(`id`)
+);
+
+create table martialart(
+                           `id` INT AUTO_INCREMENT PRIMARY KEY,
+                           `art_name` VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE `CharacterArt` (
+                                `id` INT PRIMARY KEY AUTO_INCREMENT,
+                                `char_id` INT NOT NULL,  -- 人物ID (外键)
+                                `art_id` INT NOT NULL,   -- 武功ID (外键)
+                                `art_description` TEXT,  -- 针对该人物的武功描述 (关系属性)
+
+    -- 复合唯一约束：确保同一个人不会重复关联同一武功
+                                UNIQUE KEY `uk_char_art` (`char_id`, `art_id`),
+
+    -- 外键约束：关联 Character 表
+                                FOREIGN KEY (`char_id`) REFERENCES `Character`(`id`),
+
+    -- 外键约束：关联 MartialArt 表
+                                FOREIGN KEY (`art_id`) REFERENCES `MartialArt`(`id`)
 );

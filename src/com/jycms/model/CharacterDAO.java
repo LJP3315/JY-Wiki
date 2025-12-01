@@ -7,7 +7,7 @@ import java.util.List;
 public class CharacterDAO {
 
     public boolean login(String user, String pass) {
-        // (登录逻辑保持不变，此处省略以节省篇幅)
+        // (登录逻辑保持不变，此处省略)
         String sql = "SELECT id FROM `User` WHERE username = ? AND password = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -23,7 +23,7 @@ public class CharacterDAO {
     }
 
     /**
-     * 修改：使用 JOIN 查询，支持按小说标题或人物名称搜索
+     * 修改：使用 JOIN Novel 查询小说名称
      */
     public List<Character> searchCharacters(String keyword, String type) {
         List<Character> list = new ArrayList<>();
@@ -51,36 +51,42 @@ public class CharacterDAO {
     }
 
     /**
-     * 修改：详情查询也需要 JOIN 获取小说名
+     * 修改：详情查询使用 JOIN Novel，武功查询使用三表联查
      */
     public Character getCharacterDetails(int id) {
         Character c = null;
-        // 核心修改：关联查询
+        // SQL Char：关联 Novel 表
         String sqlChar = "SELECT c.*, n.title as novel_title FROM `Character` c LEFT JOIN `Novel` n ON c.novel_id = n.id WHERE c.id = ?";
-        String sqlArts = "SELECT id, art_name, art_description FROM `MartialArt` WHERE char_id = ?";
+        // SQL Arts：关联 CharacterArt 和 MartialArt 表
+        String sqlArts = "SELECT ca.id, ca.art_description, ma.art_name " +
+                "FROM `CharacterArt` ca " +
+                "JOIN `MartialArt` ma ON ca.art_id = ma.id " +
+                "WHERE ca.char_id = ?";
 
         try (Connection conn = DBUtil.getConnection()) {
+            // 1. 获取人物基础信息
             try (PreparedStatement ps = conn.prepareStatement(sqlChar)) {
                 ps.setInt(1, id);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        c = mapResultSetToCharacter(rs);
+                        c = mapResultSetToCharacter(rs); // 包含 full description
                     } else {
                         return null;
                     }
                 }
             }
-            // 加载武功逻辑不变
+
+            // 2. 获取关联武功信息 (三表联查)
             if (c != null) {
                 try (PreparedStatement ps2 = conn.prepareStatement(sqlArts)) {
                     ps2.setInt(1, id);
                     try (ResultSet rs2 = ps2.executeQuery()) {
                         while (rs2.next()) {
-                            MartialArt ma = new MartialArt();
-                            ma.setId(rs2.getInt("id"));
-                            ma.setArtName(rs2.getString("art_name"));
-                            ma.setArtDescription(rs2.getString("art_description"));
-                            c.addMartialArt(ma);
+                            CharacterArt ca = new CharacterArt(); // 映射到 CharacterArt
+                            ca.setId(rs2.getInt("id"));
+                            ca.setArtDescription(rs2.getString("art_description"));
+                            ca.setArtName(rs2.getString("art_name"));
+                            c.addMartialArt(ca);
                         }
                     }
                 }
@@ -94,14 +100,14 @@ public class CharacterDAO {
     // --- 新增：收藏功能相关方法 ---
 
     public boolean addToCollection(int charId) {
-        if (isCollected(charId)) return false; // 防止重复
         String sql = "INSERT INTO `Collection` (char_id) VALUES (?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, charId);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            // 捕获到 SQL 异常，可能是重复收藏 (UNIQUE KEY 约束)
+            // e.printStackTrace();
             return false;
         }
     }
@@ -124,27 +130,12 @@ public class CharacterDAO {
         return list;
     }
 
-    public boolean isCollected(int charId) {
-        String sql = "SELECT id FROM `Collection` WHERE char_id = ?";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, charId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
     // --- 辅助方法：统一映射逻辑 ---
     private Character mapResultSetToCharacter(ResultSet rs) throws SQLException {
         Character c = new Character();
         c.setId(rs.getInt("id"));
         c.setNovelId(rs.getInt("novel_id"));
         c.setName(rs.getString("name"));
-        // 注意：这里使用的是 JOIN 出来的别名 'novel_title'
         c.setNovelName(rs.getString("novel_title"));
         c.setDescriptionShort(rs.getString("description_short"));
         c.setImageUrl(rs.getString("image_url"));
@@ -152,7 +143,7 @@ public class CharacterDAO {
         try {
             c.setDescriptionFull(rs.getString("description_full"));
         } catch (SQLException e) {
-            // 搜索列表可能不包含 full description，忽略错误
+            // 忽略，因为搜索列表不需要 full description
         }
         return c;
     }

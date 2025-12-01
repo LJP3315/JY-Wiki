@@ -19,7 +19,7 @@ public class SystemController {
         return dao.getCharacterDetails(charId);
     }
 
-    // --- 新增部分 ---
+    // --- 新增部分：收藏功能 ---
     public boolean addToCollection(int charId) {
         return dao.addToCollection(charId);
     }
@@ -27,5 +27,5 @@ public class SystemController {
     public List<Character> getCollection() {
         return dao.getCollection();
     }
-    // ----------------
+    // -------------------------
 }
