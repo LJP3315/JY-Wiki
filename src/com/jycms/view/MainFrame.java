@@ -16,40 +16,33 @@ public class MainFrame extends JFrame {
     private JTextField tfKeyword;
     private JComboBox<String> cbType;
     private JButton btnSearch;
+
+    // --- 新增 UI 组件 ---
+    private JButton btnAddToFav;
+    private JToggleButton tbtnShowFav;
+    // ------------------
+
     private JTable table;
     private CharacterTableModel tableModel;
 
     public MainFrame(SystemController controller) {
         this.controller = controller;
         initUI();
-        // 初始加载一次数据
         doSearch();
     }
 
-    // --- UI Initialization Methods ---
-
-    /**
-     * 初始化主窗口界面，按照层次进行组织。
-     */
     private void initUI() {
-        // 1. 窗口基础设置
         setupFrameSettings();
 
-        // 2. 顶部面板（搜索区域）
         JPanel topPanel = createTopPanel();
         add(topPanel, BorderLayout.NORTH);
 
-        // 3. 中央面板（数据表格区域）
         JScrollPane centerScrollPane = createCenterTableArea();
         add(centerScrollPane, BorderLayout.CENTER);
 
-        // 4. 绑定事件监听器
         setupEventListeners();
     }
 
-    /**
-     * 设置主窗口的基本属性（标题、大小、关闭操作等）。
-     */
     private void setupFrameSettings() {
         setTitle("Jinyong Character Management System (JY-CMS)");
         setSize(900, 600);
@@ -57,78 +50,111 @@ public class MainFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
-    /**
-     * 创建并配置顶部的搜索面板。
-     */
     private JPanel createTopPanel() {
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
-        tfKeyword = new JTextField(30);
+        tfKeyword = new JTextField(20);
         cbType = new JComboBox<>(new String[]{"人物名称", "小说名称"});
         btnSearch = new JButton("搜索");
 
+        // --- 新增组件初始化 ---
+        btnAddToFav = new JButton("加入收藏");
+        tbtnShowFav = new JToggleButton("我的收藏");
+        // --------------------
+
         topPanel.add(new JLabel("关键字:"));
         topPanel.add(tfKeyword);
-        topPanel.add(new JLabel("搜索类型:"));
+        topPanel.add(new JLabel("类型:"));
         topPanel.add(cbType);
         topPanel.add(btnSearch);
+
+        // --- 添加到面板 ---
+        topPanel.add(new JSeparator(SwingConstants.VERTICAL)); // 可选：视觉分隔
+        topPanel.add(btnAddToFav);
+        topPanel.add(tbtnShowFav);
+        // ----------------
 
         return topPanel;
     }
 
-    /**
-     * 创建并配置中央的 JTable 区域。
-     * 简化：不再配置操作列。
-     * @return 包含 JTable 的 JScrollPane
-     */
     private JScrollPane createCenterTableArea() {
-        // 1. 创建 TableModel 和 JTable
+        // (保持之前的简化版本)
         tableModel = new CharacterTableModel(new ArrayList<Character>());
         table = new JTable(tableModel);
-
-        // 可选：调整列宽以适应内容
-        table.getColumnModel().getColumn(0).setPreferredWidth(50); // ID
-        table.getColumnModel().getColumn(3).setPreferredWidth(300); // 简介
-
-        // 2. 移除操作列配置 (ButtonRenderer/ButtonEditor)
-
-        // 3. 添加到滚动面板
+        // 简单设置列宽
+        table.getColumnModel().getColumn(0).setPreferredWidth(50);
+        table.getColumnModel().getColumn(3).setPreferredWidth(300);
         return new JScrollPane(table);
     }
 
-    /**
-     * 设置所有事件监听器（搜索按钮、关键词回车、表格双击等）。
-     */
     private void setupEventListeners() {
-        // 搜索事件 (命名内部类)
         SearchActionListener searchListener = new SearchActionListener();
         btnSearch.addActionListener(searchListener);
-        tfKeyword.addActionListener(searchListener); // 关键词回车也触发搜索
+        tfKeyword.addActionListener(searchListener);
 
-        // 双击行查看详情
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
                     int row = table.getSelectedRow();
-                    // 将视图行索引转换为模型行索引，以防排序
                     int modelRow = table.convertRowIndexToModel(row);
                     if (modelRow >= 0) {
                         Character c = tableModel.getCharacterAt(modelRow);
-                        if (c != null) {
-                            showDetail(c.getId());
-                        }
+                        if (c != null) showDetail(c.getId());
                     }
                 }
             }
         });
+
+        // --- 新增事件监听器 ---
+
+        // 1. 加入收藏按钮逻辑
+        btnAddToFav.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row < 0) {
+                JOptionPane.showMessageDialog(this, "请先选择一个人物！");
+                return;
+            }
+            // 获取选中人物
+            int modelRow = table.convertRowIndexToModel(row);
+            Character c = tableModel.getCharacterAt(modelRow);
+
+            // 调用控制器
+            boolean success = controller.addToCollection(c.getId());
+            if (success) {
+                JOptionPane.showMessageDialog(this, "成功加入收藏！");
+            } else {
+                JOptionPane.showMessageDialog(this, "该人物已在收藏夹中。");
+            }
+        });
+
+        // 2. 查看收藏切换按钮逻辑
+        tbtnShowFav.addActionListener(e -> {
+            if (tbtnShowFav.isSelected()) {
+                // 状态：按下 -> 显示收藏列表
+                tbtnShowFav.setText("返回搜索");
+                btnSearch.setEnabled(false);   // 禁用搜索按钮
+                tfKeyword.setEnabled(false);   // 禁用输入框
+                btnAddToFav.setEnabled(false); // 在收藏列表里禁用“加入收藏”
+
+                // 加载收藏数据
+                List<Character> favs = controller.getCollection();
+                tableModel.setCharacters(favs);
+
+            } else {
+                // 状态：弹起 -> 返回搜索模式
+                tbtnShowFav.setText("我的收藏");
+                btnSearch.setEnabled(true);
+                tfKeyword.setEnabled(true);
+                btnAddToFav.setEnabled(true);
+
+                // 恢复之前的搜索结果
+                doSearch();
+            }
+        });
+        // --------------------
     }
 
-    // --- Event and Business Logic Methods ---
-
-    /**
-     * 搜索按钮和回车的 ActionListener (命名内部类)
-     */
     private class SearchActionListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -143,19 +169,13 @@ public class MainFrame extends JFrame {
         tableModel.setCharacters(results);
     }
 
-    /**
-     * 显示人物详情的逻辑
-     */
     public void showDetail(int charId) {
         Character full = controller.getCharacterDetails(charId);
         if (full != null) {
             DetailDialog dialog = new DetailDialog(this, full);
             dialog.setVisible(true);
         } else {
-            JOptionPane.showMessageDialog(this,
-                    "未找到该人物的详细信息",
-                    "提示",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "未找到该人物的详细信息", "提示", JOptionPane.WARNING_MESSAGE);
         }
     }
 }

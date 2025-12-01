@@ -54,4 +54,26 @@ INSERT INTO `MartialArt` (`char_id`, `art_name`, `art_description`) VALUES
                                                                         (5, '玉女素心剑', '轻灵飘逸，讲究以巧取胜。'),
                                                                         (5, '黯然销魂掌', '情感与招式结合的内劲型掌法。');
 
--- 说明：请将 images 文件夹放在程序运行目录下并放入对应图片（可用占位图片）。
+-- 1. 新建小说表
+CREATE TABLE `Novel` (
+                         `id` INT PRIMARY KEY AUTO_INCREMENT,
+                         `title` VARCHAR(255) NOT NULL,
+                         `publication_year` INT
+);
+
+-- 2. 修改角色表结构
+-- (注意：生产环境中需要先迁移数据，这里假设是新项目或您已处理好数据备份)
+-- 如果 Character 表中已有数据，请先创建 Novel 数据，并将对应的 ID 填入 character.novel_id
+ALTER TABLE `Character` ADD COLUMN `novel_id` INT;
+ALTER TABLE `Character` ADD CONSTRAINT `fk_novel` FOREIGN KEY (`novel_id`) REFERENCES `Novel`(`id`);
+-- 删除旧的冗余字段
+ALTER TABLE `Character` DROP COLUMN `novel_name`;
+
+-- 3. 新建收藏表
+CREATE TABLE `Collection` (
+                              `id` INT PRIMARY KEY AUTO_INCREMENT,
+                              `char_id` INT NOT NULL,
+    -- 唯一约束，防止重复收藏同一个人
+                              UNIQUE KEY `uk_char` (`char_id`),
+                              FOREIGN KEY (`char_id`) REFERENCES `Character`(`id`)
+);
