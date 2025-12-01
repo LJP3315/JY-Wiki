@@ -1,4 +1,4 @@
-package com.jycms.view.table;
+package com.jycms.view;
 
 import com.jycms.model.Character;
 

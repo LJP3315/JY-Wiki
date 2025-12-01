@@ -2,7 +2,6 @@ package com.jycms.view;
 
 import com.jycms.controller.SystemController;
 import com.jycms.model.Character;
-import com.jycms.view.table.CharacterTableModel;
 
 import javax.swing.*;
 import java.awt.*;
