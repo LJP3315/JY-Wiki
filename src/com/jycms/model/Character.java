@@ -1,5 +1,6 @@
 package com.jycms.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Character {
@@ -19,7 +20,7 @@ public class Character {
     // 人物图片的存放路径
     private String imageUrl;
     // 人物掌握的武功列表，一个人物实体可以掌握多种武功
-    private List<MartialArt> martialArts;
+    private List<MartialArt> martialArts = new ArrayList<>();
 
     // 进行封装，通过公共的 getter 和 setter 来对数据进行获取和修改
     public int getId() {
