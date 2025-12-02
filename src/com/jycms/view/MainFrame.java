@@ -47,7 +47,7 @@ public class MainFrame extends JFrame {
     }
 
     private void setupFrameSettings() {
-        setTitle("Jinyong Character Management System (JY-CMS)");
+        setTitle("金庸小说人物信息管理系统");
         setSize(900, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

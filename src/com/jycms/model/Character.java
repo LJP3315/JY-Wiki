@@ -50,5 +50,4 @@ public class Character {
     public void addMartialArt(CharacterArt art) {
         this.martialArts.add(art);
     }
-    // -----------------------------------
 }
