@@ -2,6 +2,7 @@ package com.jycms.view;
 
 import com.jycms.controller.SystemController;
 
+import javax.print.attribute.HashPrintJobAttributeSet;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -25,12 +26,21 @@ public class LoginFrame extends JFrame {
 
     private void initUI() {
         setTitle("欢迎使用 JY-Wiki");
-        setSize(360, 200);
+        setSize(400, 300);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        JPanel mainPanel = new JPanel(new GridLayout(3, 1));
+        JPanel mainPanel = new JPanel(new GridLayout(4, 1));
+
+        JPanel titlePanel = new JPanel(new FlowLayout((FlowLayout.CENTER)));
+        JLabel lblMotto = new JLabel("飞雪连天射白鹿，笑书神侠倚碧鸳");
+
+        // 设置字体：使用默认的衬线粗体，模拟武侠气势，字体大小增大
+        Font defaultFont = lblMotto.getFont();
+        lblMotto.setFont(new Font(defaultFont.getFamily(), Font.BOLD | Font.ITALIC, 20));
+        lblMotto.setForeground(new Color(150, 0, 0)); // 暗红色，更具武侠色彩
+        titlePanel.add(lblMotto);
 
         // 用户名行
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -52,6 +62,7 @@ public class LoginFrame extends JFrame {
         btnLogin.addActionListener(new LoginActionListener());
         buttonPanel.add(btnLogin);
 
+        mainPanel.add(titlePanel);
         mainPanel.add(userPanel);
         mainPanel.add(passwordPanel);
         mainPanel.add(buttonPanel);

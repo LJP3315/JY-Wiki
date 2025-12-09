@@ -58,6 +58,4 @@ public class CharacterRelation {
     public void setRelatedCharName(String relatedCharName) {
         this.relatedCharName = relatedCharName;
     }
-
-
 }

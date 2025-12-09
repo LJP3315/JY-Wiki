@@ -164,9 +164,6 @@ public class DetailDialog extends JDialog {
         center.add(right, BorderLayout.CENTER);
         add(center, BorderLayout.CENTER);
 
-        // ----------------------------------------------------
-        // 底部：关闭按钮
-        // ----------------------------------------------------
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton btnClose = new JButton("关闭");
         btnClose.addActionListener(e -> dispose());
