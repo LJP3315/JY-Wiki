@@ -62,6 +62,11 @@ public class CharacterDAO {
                 "FROM `CharacterArt` ca " +
                 "JOIN `MartialArt` ma ON ca.art_id = ma.id " +
                 "WHERE ca.char_id = ?";
+        // 查询当前人物的所有关系
+        String sqlRelations = "SELECT cr.id, cr.char_id_b, cr.relation_type, cr.description, c2.name as related_char_name " +
+                "FROM `CharacterRelation` cr " +
+                "JOIN `Character` c2 ON cr.char_id_b = c2.id " +
+                "WHERE cr.char_id_a = ?";
 
         try (Connection conn = DBUtil.getConnection()) {
             // 1. 获取人物基础信息
@@ -87,6 +92,25 @@ public class CharacterDAO {
                             ca.setArtDescription(rs2.getString("art_description"));
                             ca.setArtName(rs2.getString("art_name"));
                             c.addMartialArt(ca);
+                        }
+                    }
+                }
+            }
+            // 获取选中人物的关系信息
+            if (c != null) {
+                try (PreparedStatement ps3 = conn.prepareStatement(sqlRelations)) {
+                    ps3.setInt(1, id); // 查找所有 char_id_a 是当前人物的关系
+                    try (ResultSet rs3 = ps3.executeQuery()) {
+                        while (rs3.next()) {
+                            CharacterRelation cr = new CharacterRelation();
+                            cr.setId(rs3.getInt("id"));
+                            cr.setCharIdA(id); // 当前人物 ID
+                            cr.setCharIdB(rs3.getInt("char_id_b"));
+                            cr.setRelationType(rs3.getString("relation_type"));
+                            cr.setDescription(rs3.getString("description"));
+                            cr.setRelatedCharName(rs3.getString("related_char_name"));
+
+                            c.addRelation(cr); // 使用 Character 对象的 addRelation 方法
                         }
                     }
                 }

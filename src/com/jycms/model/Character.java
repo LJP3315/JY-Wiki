@@ -11,6 +11,8 @@ public class Character {
     // 泛型类型修改
     private List<CharacterArt> martialArts = new ArrayList<>();
     // ---------------------
+    private List<CharacterRelation> relations = new ArrayList<>();
+
 
     private String name;
     private String descriptionShort;
@@ -47,7 +49,14 @@ public class Character {
     public List<CharacterArt> getMartialArts() { return martialArts; }
     public void setMartialArts(List<CharacterArt> martialArts) { this.martialArts = martialArts; }
 
+    public List<CharacterRelation> getRelations() { return relations; }
+    public void setRelations(List<CharacterRelation> relations) {this.relations = relations;}
+
     public void addMartialArt(CharacterArt art) {
         this.martialArts.add(art);
+    }
+
+    public void addRelation(CharacterRelation relation) {
+        this.relations.add(relation);
     }
 }

@@ -27,5 +27,4 @@ public class SystemController {
     public List<Character> getCollection() {
         return dao.getCollection();
     }
-    // -------------------------
 }

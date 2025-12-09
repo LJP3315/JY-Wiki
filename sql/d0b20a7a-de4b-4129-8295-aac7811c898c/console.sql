@@ -78,3 +78,16 @@ CREATE TABLE `CharacterArt` (
     -- 外键约束：关联 MartialArt 表
                                 FOREIGN KEY (`art_id`) REFERENCES `MartialArt`(`id`)
 );
+
+create table CharacterRelation (
+    id int primary key auto_increment,
+    char_id_a int not null,
+    char_id_b int not null,
+    relation_type varchar(50) not null,
+    description text null,
+
+    unique key uk_char_relation (char_id_a, char_id_b, relation_type),
+    foreign key (char_id_a) references `Character`(id),
+    foreign key (char_id_b) references `Character`(id)
+);
+
