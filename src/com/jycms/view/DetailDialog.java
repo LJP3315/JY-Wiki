@@ -2,7 +2,7 @@ package com.jycms.view;
 
 import com.jycms.model.Character;
 import com.jycms.model.CharacterArt;
-import com.jycms.model.CharacterRelation; // 【新增】导入关系实体
+import com.jycms.model.CharacterRelation;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,6 +11,7 @@ import java.util.List;
 
 /**
  * 人物详细信息弹窗：显示图片、全描述、武功列表和人物关系。
+ * 优化：缩减武功列表，增大关系描述区域。
  */
 public class DetailDialog extends JDialog {
     private Character character;
@@ -22,8 +23,8 @@ public class DetailDialog extends JDialog {
     }
 
     private void initUI() {
-        // 增大对话框尺寸，为关系列表腾出空间
-        setSize(750, 600);
+        // 维持合适的窗口尺寸
+        setSize(750, 650);
         setLocationRelativeTo(getOwner());
         setLayout(new BorderLayout());
 
@@ -61,7 +62,6 @@ public class DetailDialog extends JDialog {
         // ----------------------------------------------------
         // 右侧：详情区域 (CENTER)
         // ----------------------------------------------------
-        // 使用 BoxLayout 垂直堆叠 人物描述、武功区、关系区
         JPanel right = new JPanel();
         right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
         right.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -76,16 +76,15 @@ public class DetailDialog extends JDialog {
         spDesc.setPreferredSize(new Dimension(500, 150));
         spDesc.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
         right.add(spDesc);
-        right.add(Box.createVerticalStrut(5)); // 垂直间距
+        right.add(Box.createVerticalStrut(5));
 
-        // --- 2. 武功列表区 (包含武功列表和武功描述) ---
+        // --- 2. 武功列表区 (缩减高度) ---
         JPanel artsPanel = new JPanel(new BorderLayout(5, 5));
 
-        // 武功列表 (CENTER)
+        // 武功列表
         List<CharacterArt> arts = character.getMartialArts();
         DefaultListModel<String> artsModel = new DefaultListModel<>();
         for (CharacterArt ca : arts) {
-            // 列表显示：[武功名称]
             artsModel.addElement(ca.getArtName());
         }
         JList<String> listArts = new JList<>(artsModel);
@@ -94,8 +93,8 @@ public class DetailDialog extends JDialog {
         spArts.setBorder(BorderFactory.createTitledBorder("关联武功"));
         artsPanel.add(spArts, BorderLayout.CENTER);
 
-        // 武功描述 (SOUTH)
-        JTextArea taArtDesc = new JTextArea(1, 40); // 1行高
+        // 武功描述 (1行高)
+        JTextArea taArtDesc = new JTextArea(1, 40);
         taArtDesc.setEditable(false);
         taArtDesc.setLineWrap(true);
         taArtDesc.setWrapStyleWord(true);
@@ -104,7 +103,41 @@ public class DetailDialog extends JDialog {
         spArtDesc.setPreferredSize(new Dimension(450, 45));
         artsPanel.add(spArtDesc, BorderLayout.SOUTH);
 
-        // 武功列表监听器 (用于显示武功描述)
+        // **【修改】缩减 artsPanel 的总高度至 130**
+        artsPanel.setPreferredSize(new Dimension(500, 130));
+        artsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
+        right.add(artsPanel);
+        right.add(Box.createVerticalStrut(5));
+
+        // --- 3. 角色关系区 (列表) ---
+        List<CharacterRelation> relations = character.getRelations();
+        DefaultListModel<String> relationsModel = new DefaultListModel<>();
+        for (CharacterRelation cr : relations) {
+            relationsModel.addElement(cr.getRelationType() + "：" + cr.getRelatedCharName());
+        }
+        JList<String> listRelations = new JList<>(relationsModel);
+        listRelations.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane spRelations = new JScrollPane(listRelations);
+        spRelations.setBorder(BorderFactory.createTitledBorder("人物关系"));
+        spRelations.setPreferredSize(new Dimension(500, 100));
+        spRelations.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+        right.add(spRelations);
+        right.add(Box.createVerticalStrut(5));
+
+        // --- 4. 关系描述区域 (增大高度) ---
+        JTextArea taRelationDesc = new JTextArea(4, 40); // 增大到 4 行高
+        taRelationDesc.setEditable(false);
+        taRelationDesc.setLineWrap(true);
+        taRelationDesc.setWrapStyleWord(true);
+        JScrollPane spRelationDesc = new JScrollPane(taRelationDesc);
+        spRelationDesc.setBorder(BorderFactory.createTitledBorder("关系详情"));
+
+        // **【修改】增大关系描述区域的高度至 100**
+        spRelationDesc.setPreferredSize(new Dimension(500, 100));
+        spRelationDesc.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+        right.add(spRelationDesc);
+
+        // 武功列表监听器 (不变)
         listArts.addListSelectionListener(e -> {
             int idx = listArts.getSelectedIndex();
             if (idx >= 0 && idx < arts.size()) {
@@ -116,28 +149,17 @@ public class DetailDialog extends JDialog {
             }
         });
 
-        // 固定武功区尺寸
-        artsPanel.setPreferredSize(new Dimension(500, 200));
-        artsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
-        right.add(artsPanel);
-        right.add(Box.createVerticalStrut(5)); // 垂直间距
-
-        // --- 3. 【新增】角色关系区 ---
-        List<CharacterRelation> relations = character.getRelations();
-        DefaultListModel<String> relationsModel = new DefaultListModel<>();
-        for (CharacterRelation cr : relations) {
-            // 列表显示：[关系类型]：[关联人物姓名]
-            relationsModel.addElement(cr.getRelationType() + "：" + cr.getRelatedCharName());
-        }
-        JList<String> listRelations = new JList<>(relationsModel);
-        listRelations.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        JScrollPane spRelations = new JScrollPane(listRelations);
-        spRelations.setBorder(BorderFactory.createTitledBorder("人物关系"));
-        spRelations.setPreferredSize(new Dimension(500, 100));
-        spRelations.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
-        right.add(spRelations);
-
-        // 关系描述 (可选：可以像武功描述一样，在选中时显示 description 字段，但这里为了紧凑暂时不实现)
+        // 关系列表监听器 (不变)
+        listRelations.addListSelectionListener(e -> {
+            int idx = listRelations.getSelectedIndex();
+            if (idx >= 0 && idx < relations.size()) {
+                CharacterRelation cr = relations.get(idx);
+                taRelationDesc.setText(cr.getDescription());
+                taRelationDesc.setCaretPosition(0);
+            } else {
+                taRelationDesc.setText("");
+            }
+        });
 
         center.add(right, BorderLayout.CENTER);
         add(center, BorderLayout.CENTER);
