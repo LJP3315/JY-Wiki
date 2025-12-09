@@ -28,12 +28,12 @@ public class CharacterDAO {
     public List<Character> searchCharacters(String keyword, String type) {
         List<Character> list = new ArrayList<>();
         // 核心修改：关联 Novel 表获取小说标题 (别名 novel_title)
-        StringBuilder sql = new StringBuilder("SELECT c.*, n.title as novel_title FROM `Character` c LEFT JOIN `Novel` n ON c.novel_id = n.id WHERE ");
+        StringBuilder sql = new StringBuilder("select * from V_Character_Base where ");
 
         if ("小说名称".equals(type)) {
-            sql.append("n.title LIKE ?");
+            sql.append("novel_title like ?");
         } else {
-            sql.append("c.name LIKE ?");
+            sql.append("name LIKE ?");
         }
 
         try (Connection conn = DBUtil.getConnection();
@@ -56,17 +56,11 @@ public class CharacterDAO {
     public Character getCharacterDetails(int id) {
         Character c = null;
         // SQL Char：关联 Novel 表
-        String sqlChar = "SELECT c.*, n.title as novel_title FROM `Character` c LEFT JOIN `Novel` n ON c.novel_id = n.id WHERE c.id = ?";
+        String sqlChar = "select * from v_character_base where id = ?";
         // SQL Arts：关联 CharacterArt 和 MartialArt 表
-        String sqlArts = "SELECT ca.id, ca.art_description, ma.art_name " +
-                "FROM `CharacterArt` ca " +
-                "JOIN `MartialArt` ma ON ca.art_id = ma.id " +
-                "WHERE ca.char_id = ?";
+        String sqlArts = "select * from v_character_arts where char_id = ?";
         // 查询当前人物的所有关系
-        String sqlRelations = "SELECT cr.id, cr.char_id_b, cr.relation_type, cr.description, c2.name as related_char_name " +
-                "FROM `CharacterRelation` cr " +
-                "JOIN `Character` c2 ON cr.char_id_b = c2.id " +
-                "WHERE cr.char_id_a = ?";
+        String sqlRelations = "select * from v_character_relations where char_id_a = ?";
 
         try (Connection conn = DBUtil.getConnection()) {
             // 1. 获取人物基础信息
@@ -139,9 +133,7 @@ public class CharacterDAO {
     public List<Character> getCollection() {
         List<Character> list = new ArrayList<>();
         // 三表关联：Collection -> Character -> Novel
-        String sql = "SELECT c.*, n.title as novel_title FROM `Collection` col " +
-                "JOIN `Character` c ON col.char_id = c.id " +
-                "LEFT JOIN `Novel` n ON c.novel_id = n.id";
+        String sql = "select * from v_collection_details";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {

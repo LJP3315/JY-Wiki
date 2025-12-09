@@ -91,3 +91,35 @@ create table CharacterRelation (
     foreign key (char_id_b) references `Character`(id)
 );
 
+-- 人物基础信息视图
+create view V_Character_Base as (
+select c.id, c.novel_id, c.name, c.description_short, c.description_full, c.image_url, n.title as novel_title
+from `Character` c left join Novel n on c.novel_id = n.id)
+
+-- 人物武功详情视图
+CREATE VIEW V_Character_Arts AS
+SELECT
+    ca.id, ca.char_id, ca.art_description,
+    ma.art_name
+FROM `CharacterArt` ca
+         JOIN `MartialArt` ma ON ca.art_id = ma.id;
+
+-- 人物关系详情视图
+CREATE VIEW V_Character_Relations AS
+SELECT
+    cr.id, cr.char_id_a, cr.char_id_b, cr.relation_type, cr.description,
+    c2.name AS related_char_name
+FROM `CharacterRelation` cr
+         JOIN `Character` c2 ON cr.char_id_b = c2.id;
+
+-- 收藏列表视图
+CREATE VIEW V_Collection_Details AS
+SELECT
+    col.char_id AS id, -- 使用 char_id 作为 ID
+    c.novel_id, c.name, c.description_short, c.image_url,
+    n.title AS novel_title, c.description_full
+FROM `Collection` col
+         JOIN `Character` c ON col.char_id = c.id
+         LEFT JOIN `Novel` n ON c.novel_id = n.id;
+
+--
