@@ -8,7 +8,7 @@ public class CharacterDAO {
     // 进行登录操作
     // 检验 username, password 是否存在于 user 表中
     public boolean login(String user, String pass) {
-        String sql = "SELECT id FROM `user` WHERE username = ? AND password = ?";
+        String sql = "select id from user where username = ? and password = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             // 用传入的形参替换sql语句中的占位符.
@@ -26,8 +26,10 @@ public class CharacterDAO {
 
     // 通过关键词和搜索类型，锁定符合关键字要求的人物
     public List<Character> searchCharacters(String keyword, String type) {
+        // 创建一个元素类型为 Character 的动态数组
         List<Character> list = new ArrayList<>();
-        // 核心修改：关联 Novel 表获取小说标题 (别名 novel_title)
+        // 将 n.name 修改为 novel_title
+        // 使用视图，根据类型执行对应的操作
         StringBuilder sql = new StringBuilder("select * from v_character_base where ");
 
         if ("小说名称".equals(type)) {
@@ -123,8 +125,6 @@ public class CharacterDAO {
             ps.setInt(1, charId);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            // 捕获到 SQL 异常，可能是重复收藏 (UNIQUE KEY 约束)
-            // e.printStackTrace();
             return false;
         }
     }

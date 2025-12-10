@@ -49,14 +49,24 @@ public class DetailDialog extends JDialog {
         File imgFile = new File(character.getImageUrl());
         if (imgFile.exists()) {
             ImageIcon icon = new ImageIcon(character.getImageUrl());
-            Image image = icon.getImage().getScaledInstance(200, 250, Image.SCALE_SMOOTH);
-            lblImage.setIcon(new ImageIcon(image));
+            Image srcImg = icon.getImage();
+
+            // 目标显示宽度（可调）
+            int targetWidth = 240;
+
+            // 按 3:4 比例计算高度（600:800）
+            int targetHeight = targetWidth * 4 / 3;
+
+            // 使用平滑缩放
+            Image scaledImg = srcImg.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+            lblImage.setIcon(new ImageIcon(scaledImg));
         } else {
             lblImage.setText("图片加载失败：" + character.getImageUrl());
         }
 
+
         left.add(lblImage, BorderLayout.CENTER);
-        left.setPreferredSize(new Dimension(220, 0));
+        left.setPreferredSize(new Dimension(260, 0));
         center.add(left, BorderLayout.WEST);
 
         // ----------------------------------------------------

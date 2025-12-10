@@ -5,14 +5,10 @@ import java.util.List;
 
 public class Character {
     private int id;
-    // --- 新增/修改部分 ---
     private int novelId;
-    private String novelName; // 通过 JOIN 查询填充
-    // 泛型类型修改
+    private String novelName;
     private List<CharacterArt> martialArts = new ArrayList<>();
-    // ---------------------
     private List<CharacterRelation> relations = new ArrayList<>();
-
 
     private String name;
     private String descriptionShort;
@@ -20,8 +16,6 @@ public class Character {
     private String imageUrl;
 
     public Character() {}
-
-    // ... 省略构造函数 ...
 
     // getters & setters
     public int getId() { return id; }
