@@ -30,6 +30,7 @@ public class MainFrame extends JFrame {
 
     public MainFrame(SystemController controller) {
         this.controller = controller;
+        // 初始化 UI
         initUI();
         doSearch(); // 启动时自动加载一次数据
     }
@@ -42,6 +43,7 @@ public class MainFrame extends JFrame {
         add(topPanel, BorderLayout.NORTH);
 
         JScrollPane centerScrollPane = createCenterTableArea();
+        // 将下拉框居中
         add(centerScrollPane, BorderLayout.CENTER);
 
         setupEventListeners();
