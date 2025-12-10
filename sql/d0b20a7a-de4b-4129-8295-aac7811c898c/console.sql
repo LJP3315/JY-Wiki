@@ -94,7 +94,7 @@ create table CharacterRelation (
 -- 人物基础信息视图
 create view V_Character_Base as (
 select c.id, c.novel_id, c.name, c.description_short, c.description_full, c.image_url, n.title as novel_title
-from `Character` c left join Novel n on c.novel_id = n.id)
+from `Character` c left join Novel n on c.novel_id = n.id);
 
 -- 人物武功详情视图
 CREATE VIEW V_Character_Arts AS
@@ -121,5 +121,3 @@ SELECT
 FROM `Collection` col
          JOIN `Character` c ON col.char_id = c.id
          LEFT JOIN `Novel` n ON c.novel_id = n.id;
-
---

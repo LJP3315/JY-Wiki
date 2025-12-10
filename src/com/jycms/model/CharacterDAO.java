@@ -5,14 +5,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CharacterDAO {
-
+    // 进行登录操作
+    // 检验 username, password 是否存在于 user 表中
     public boolean login(String user, String pass) {
-        // (登录逻辑保持不变，此处省略)
-        String sql = "SELECT id FROM `User` WHERE username = ? AND password = ?";
+        String sql = "SELECT id FROM `user` WHERE username = ? AND password = ?";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+            // 用传入的形参替换sql语句中的占位符.
             ps.setString(1, user);
             ps.setString(2, pass);
+            // 获取sql语句运行的结果，如果存在返回true，否则返回false.
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -22,18 +24,16 @@ public class CharacterDAO {
         }
     }
 
-    /**
-     * 修改：使用 JOIN Novel 查询小说名称
-     */
+    // 通过关键词和搜索类型，锁定符合关键字要求的人物
     public List<Character> searchCharacters(String keyword, String type) {
         List<Character> list = new ArrayList<>();
         // 核心修改：关联 Novel 表获取小说标题 (别名 novel_title)
-        StringBuilder sql = new StringBuilder("select * from V_Character_Base where ");
+        StringBuilder sql = new StringBuilder("select * from v_character_base where ");
 
         if ("小说名称".equals(type)) {
             sql.append("novel_title like ?");
         } else {
-            sql.append("name LIKE ?");
+            sql.append("name like ?");
         }
 
         try (Connection conn = DBUtil.getConnection();
@@ -116,9 +116,8 @@ public class CharacterDAO {
     }
 
     // --- 新增：收藏功能相关方法 ---
-
     public boolean addToCollection(int charId) {
-        String sql = "INSERT INTO `Collection` (char_id) VALUES (?)";
+        String sql = "INSERT INTO `collection` (char_id) VALUES (?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, charId);
