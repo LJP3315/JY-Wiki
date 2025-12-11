@@ -33,4 +33,9 @@ public class SystemController {
     public List<Character> getCollection() {
         return dao.getCollection();
     }
+
+    // 移除收藏夹中的人物
+    public boolean removeFromCollection(int charId) {
+        return dao.removeFromCollection(charId);
+    }
 }

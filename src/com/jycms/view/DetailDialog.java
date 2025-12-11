@@ -38,9 +38,7 @@ public class DetailDialog extends JDialog {
         // 中间：左侧图片，右侧详情 (BorderLayout)
         JPanel center = new JPanel(new BorderLayout());
 
-        // ----------------------------------------------------
         // 左侧：图片区域 (WEST)
-        // ----------------------------------------------------
         JPanel left = new JPanel(new BorderLayout());
         JLabel lblImage = new JLabel();
         lblImage.setHorizontalAlignment(JLabel.CENTER);
@@ -69,9 +67,6 @@ public class DetailDialog extends JDialog {
         left.setPreferredSize(new Dimension(260, 0));
         center.add(left, BorderLayout.WEST);
 
-        // ----------------------------------------------------
-        // 右侧：详情区域 (CENTER)
-        // ----------------------------------------------------
         JPanel right = new JPanel();
         right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
         right.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));

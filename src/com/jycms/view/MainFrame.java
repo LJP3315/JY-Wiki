@@ -9,28 +9,30 @@ import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/** 显示 搜索 + 收藏 的主界面 */
+/** * 显示 搜索 + 收藏 的主界面
+ * 集成：搜索、详情（双击）、加入收藏、切换收藏夹、移除收藏（新按钮）
+ */
 public class MainFrame extends JFrame {
     private final SystemController controller;
 
-    /** 搜索关键词输入框 */
+    // 搜索组件
     private JTextField tfKeyword;
-    /** 搜索类型下拉框 */
     private JComboBox<String> cbType;
-    /** 搜索按钮 */
     private JButton btnSearch;
 
-    /** 加入收藏按钮 */
+    // 收藏管理组件
     private JButton btnAddToFav;
-    /** 展示收藏夹 and 返回搜索 */
     private JToggleButton tbtnShowFav;
+    // 【新增】移除收藏按钮，仅在收藏模式下显示
+    private JButton btnRemoveFav;
 
     private JTable table;
     private CharacterTableModel tableModel;
 
+    private boolean isCollectionMode = false;
+
     public MainFrame(SystemController controller) {
         this.controller = controller;
-        // 初始化 UI
         initUI();
         doSearch(); // 启动时自动加载一次数据
     }
@@ -39,11 +41,9 @@ public class MainFrame extends JFrame {
         setupFrameSettings();
 
         JPanel topPanel = createTopPanel();
-        // 将顶部栏添加到主界面的 north 方位
         add(topPanel, BorderLayout.NORTH);
 
         JScrollPane centerScrollPane = createCenterTableArea();
-        // 将下拉框居中
         add(centerScrollPane, BorderLayout.CENTER);
 
         setupEventListeners();
@@ -67,6 +67,9 @@ public class MainFrame extends JFrame {
         btnSearch = new JButton("搜索");
         btnAddToFav = new JButton("加入收藏");
         tbtnShowFav = new JToggleButton("我的收藏");
+        // 【新增】初始化移除收藏按钮
+        btnRemoveFav = new JButton("移除收藏");
+        btnRemoveFav.setEnabled(false); // 默认禁用/隐藏
 
         // 将组件添加到顶部面板
         topPanel.add(new JLabel("关键字:"));
@@ -74,15 +77,17 @@ public class MainFrame extends JFrame {
         topPanel.add(new JLabel("类型:"));
         topPanel.add(cbType);
         topPanel.add(btnSearch);
+
+        // 收藏管理按钮组
         topPanel.add(btnAddToFav);
         topPanel.add(tbtnShowFav);
+        topPanel.add(btnRemoveFav); // 【新增】加入移除按钮
 
         return topPanel;
     }
 
     /** 创建滚动框 */
     private JScrollPane createCenterTableArea() {
-        // 创建空的角色表，tableModel用来存数据，table用来画表格
         tableModel = new CharacterTableModel(new ArrayList<Character>());
         table = new JTable(tableModel);
 
@@ -91,17 +96,27 @@ public class MainFrame extends JFrame {
             table.getColumnModel().getColumn(0).setPreferredWidth(50);
             table.getColumnModel().getColumn(3).setPreferredWidth(300);
         } catch (ArrayIndexOutOfBoundsException e) {
-            // 忽略：如果列数与预期不符
+            System.err.println("Warning: Table model column count mismatch.");
         }
 
         return new JScrollPane(table);
     }
+
+    // --- 业务逻辑方法 ---
 
     private void doSearch() {
         String keyword = tfKeyword.getText().trim();
         String type = (String) cbType.getSelectedItem();
         List<Character> results = controller.searchCharacters(keyword, type);
         tableModel.setCharacters(results);
+    }
+
+    private void loadCollectionData() {
+        List<Character> favs = controller.getCollection();
+        if (favs.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "收藏夹中还没有人物。", "提示", JOptionPane.INFORMATION_MESSAGE);
+        }
+        tableModel.setCharacters(favs);
     }
 
     public void showDetail(int charId) {
@@ -114,47 +129,72 @@ public class MainFrame extends JFrame {
         }
     }
 
+    /** 移除收藏的业务逻辑 */
+    private void onRemoveFromCollection() {
+        // 1. 确保在收藏模式下
+        if (!isCollectionMode) return;
+
+        // 2. 确保选中了一行
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "请选择要移除的人物！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // 3. 获取人物ID和姓名
+        int modelRow = table.convertRowIndexToModel(row);
+        Character c = tableModel.getCharacterAt(modelRow);
+
+        if (c != null) {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "确定要将人物 [" + c.getName() + "] 从收藏夹中移除吗？",
+                    "确认移除", JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                if (controller.removeFromCollection(c.getId())) {
+                    JOptionPane.showMessageDialog(this, "成功移除收藏！", "成功", JOptionPane.INFORMATION_MESSAGE);
+                    loadCollectionData(); // 刷新收藏夹视图
+                } else {
+                    JOptionPane.showMessageDialog(this, "移除失败，请检查数据库连接或日志。", "失败", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }
+    }
+
+
     /** 为可操作组件添加事件监听 */
     private void setupEventListeners() {
         SearchActionListener searchListener = new SearchActionListener();
         btnSearch.addActionListener(searchListener);
         tfKeyword.addActionListener(searchListener);
 
-        // 鼠标点击监听器
+        // 双击查看详情监听器：仅在搜索模式下有效
         table.addMouseListener(new MouseAdapter() {
             @Override
-            // 点击数等于2，获取当前行号
-            // 获取当前行对应的人物
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) {
+                // 双击且处于非收藏模式（即搜索模式）
+                if (e.getClickCount() == 2 && !isCollectionMode) {
                     int row = table.getSelectedRow();
                     if (row < 0) return;
 
-                    // 将 table 中的行号转换为 tableModel 中的行号
                     int modelRow = table.convertRowIndexToModel(row);
-                    // 通过 tableModel 中的行号锁定人物
                     Character c = tableModel.getCharacterAt(modelRow);
-                    // 显示人物的详情界面
                     if (c != null) showDetail(c.getId());
                 }
             }
         });
 
-        // 收藏按钮的事件监听器
+        // 加入收藏按钮的事件监听器 (C)
         btnAddToFav.addActionListener(e -> {
-            // 先确保用户选中对象
+            // 确保用户选中对象且处于搜索模式
             int row = table.getSelectedRow();
-            // 为选中对象，弹出提示框
-            if (row < 0) {
-                JOptionPane.showMessageDialog(this, "请先选择一个人物！");
+            if (row < 0 || isCollectionMode) {
+                JOptionPane.showMessageDialog(this, "请在搜索结果中选择一个人物加入收藏！");
                 return;
             }
-            // 将table转为tableModel.
             int modelRow = table.convertRowIndexToModel(row);
-            // 在tableModel中找到指定人物.
             Character c = tableModel.getCharacterAt(modelRow);
 
-            // 将选中人物的id添加到收藏.
             boolean success = controller.addToCollection(c.getId());
             if (success) {
                 JOptionPane.showMessageDialog(this, "成功加入收藏！");
@@ -163,38 +203,47 @@ public class MainFrame extends JFrame {
             }
         });
 
-        // 显示按钮的事件监听器，下拉框有两个监听器
+        // 【新增】移除收藏按钮的事件监听器 (D)
+        btnRemoveFav.addActionListener(e -> onRemoveFromCollection());
+
+
+        // 切换视图按钮的事件监听器 (R / 视图切换)
         tbtnShowFav.addActionListener(e -> {
-            // 当选中显示收藏时，对其他按钮进行失活
-            if (tbtnShowFav.isSelected()) {
+            isCollectionMode = tbtnShowFav.isSelected(); // 更新状态标志
+
+            if (isCollectionMode) {
                 // 状态：按下 -> 显示收藏列表
                 tbtnShowFav.setText("返回搜索");
-                // 失活 搜索按钮 + 搜索文本框 + 加入收藏按钮
+
+                // 切换按钮状态：禁用搜索，启用移除收藏
                 btnSearch.setEnabled(false);
                 tfKeyword.setEnabled(false);
-                btnAddToFav.setEnabled(false); // 在收藏模式下禁用“加入收藏”
+                cbType.setEnabled(false);
+                btnAddToFav.setEnabled(false);
+                btnRemoveFav.setEnabled(true); // 【关键】启用移除按钮
 
-                // 加载收藏数据
-                List<Character> favs = controller.getCollection();
-                tableModel.setCharacters(favs);
+                loadCollectionData(); // 加载收藏数据
             } else {
-                // 未选择，返回原样
+                // 状态：未选择 -> 返回搜索界面
                 tbtnShowFav.setText("我的收藏");
+
+                // 切换按钮状态：启用搜索，禁用移除收藏
                 btnSearch.setEnabled(true);
                 tfKeyword.setEnabled(true);
+                cbType.setEnabled(true);
                 btnAddToFav.setEnabled(true);
+                btnRemoveFav.setEnabled(false); // 【关键】禁用移除按钮
 
-                // 恢复之前的搜索结果
-                doSearch();
+                doSearch(); // 恢复之前的搜索结果
             }
+            table.repaint();
         });
     }
 
     private class SearchActionListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            // 确保在搜索模式下才能执行搜索
-            if (!tbtnShowFav.isSelected()) {
+            if (!isCollectionMode) {
                 doSearch();
             }
         }

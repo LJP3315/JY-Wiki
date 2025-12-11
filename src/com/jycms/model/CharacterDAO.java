@@ -129,6 +129,28 @@ public class CharacterDAO {
         }
     }
 
+    /**
+     * [DELETE] 移除人物收藏（从 collection 表中删除记录）
+     * 这是一个关键的 DELETE 操作，用于弥补 CRUD 闭环
+     * @param charId 要移除收藏的人物 ID
+     * @return 移除是否成功
+     */
+    public boolean removeFromCollection(int charId) {
+        // SQL: 从 collection 表中删除指定 char_id 的记录
+        String sql = "DELETE FROM collection WHERE char_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, charId);
+
+            // executeUpdate() 返回受影响的行数，大于 0 即为成功删除
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public List<Character> getCollection() {
         List<Character> list = new ArrayList<>();
         // 三表关联：Collection -> Character -> Novel
